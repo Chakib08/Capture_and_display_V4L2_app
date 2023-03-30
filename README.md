@@ -31,7 +31,7 @@ $ sudo make install
 
 
 ## Running the sample
-# Command line (without using CMake)
+### Command line (without using CMake)
 
 Run the commands below
 
@@ -40,7 +40,7 @@ $ g++ -std=c++11 -Wall -I/usr/lib/opencv -I/usr/include/opencv4 v4l_capture.cpp 
 $ ./camera_cap
 ```
 
-# Using Cmake
+### Using Cmake
 
 Run the commands below
 
