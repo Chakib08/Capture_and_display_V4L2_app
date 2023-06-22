@@ -16,9 +16,17 @@ int main(int argc, char **argv)
     void *buffers[BUFFER_COUNT];
     size_t buffer_sizes[BUFFER_COUNT];
 
-    fd = open("/dev/video0", O_RDWR);
-    if (fd < 0) {
-        perror("open");
+    // Check if video channel, frame rate and convert from JPEG flag are set
+    if (argc != 2)
+    {
+        std::cout << "Error: No video node passes" << std::endl;
+        return 1;
+    }
+
+    fd = open(argv[1], O_RDWR); //|O_NONBLOCK );
+    if (fd < 0)
+    {
+        std::cout << "unable to open" << argv[1] << std::endl;
         return 1;
     }
 
@@ -34,10 +42,9 @@ int main(int argc, char **argv)
 
     memset(&fmt, 0, sizeof(fmt));
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    fmt.fmt.pix.width = 736;
-    fmt.fmt.pix.height = 480;
-    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
-    fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
+    fmt.fmt.pix.width = 3848;
+    fmt.fmt.pix.height = 2168;
+    //fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_UYVY;
 
     if (ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
         perror("VIDIOC_S_FMT");
@@ -81,7 +88,7 @@ int main(int argc, char **argv)
     }
 
     cv::namedWindow("Camera Stream", cv::WINDOW_NORMAL);
-    cv::resizeWindow("Camera Stream", 720, 480);
+    cv::resizeWindow("Camera Stream", 3848, 2168);
 
     while (true) 
     {
@@ -116,12 +123,18 @@ int main(int argc, char **argv)
             return 1;
         }
 
-        cv::Mat frame(480, 736, CV_8UC2, buffers[buf.index]);
-        //frame= frame(cv::Range(0,720), cv::Range(0,480));
-        cv::Rect roi(0,0, 720, 480);
-        frame = frame(roi);
-        cv::cvtColor(frame, frame, cv::COLOR_YUV2BGR_UYVY);
-        cv::imshow("Camera Stream", frame);
+        cv::Mat rggb12_image(2168, 3848, CV_16UC1, buffers[buf.index]);
+        //rggb12_image.convertTo(rggb12_image, CV_8UC3, 255.0/4095, 0);
+        cv::Mat bgr_image(2168, 3848, CV_8UC3);
+
+        // Check if the image is loaded successfully
+        if (rggb12_image.empty()) {
+            std::cout << "Could not open or find the image" << std::endl;
+            return -1;
+        }
+
+        cv::cvtColor(rggb12_image, bgr_image, cv::COLOR_BayerGR2BGR);        
+        cv::imshow("Camera Stream", bgr_image);
         cv::waitKey(1);
 
         if (ioctl(fd, VIDIOC_QBUF, &buf) < 0) 
