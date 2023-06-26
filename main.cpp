@@ -3,10 +3,12 @@
 #include <opencv2/cudaimgproc.hpp>
 
 #include "v4l2Device.h"
-#include <opencv2/opencv.hpp>
 
 #define WIDTH 3848
 #define HEIGHT 2168
+
+
+cv::Mat demosicing(cv::Mat bayerImg, int colorType);
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -53,16 +55,15 @@ int main(int argc, char* argv[]) {
 
         // Process the captured frame
         cv::Mat rggb12_image(HEIGHT, WIDTH, CV_16UC1, device.getBuffer(index));
-        cv::Mat bgr_image(HEIGHT, WIDTH, CV_8UC3);
+        cv::Mat bgr_image = demosicing(rggb12_image, cv::COLOR_BayerGR2BGR);
 
-        // Check if the image is loaded successfully
-        if (rggb12_image.empty()) {
-            std::cout << "Could not open or find the image" << std::endl;
+        // Check if BGR image is empty
+        if (bgr_image.empty()) 
+        {
+            std::cout << "BGR image is empty" << std::endl;
             device.stopCapture();
             device.closeDevice();
-            return -1;
         }
-        cv::cvtColor(rggb12_image, bgr_image, cv::COLOR_BayerGR2BGR);
 
         // Display the processed frame
         cv::imshow("Camera Stream", bgr_image);
@@ -94,4 +95,17 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+cv::Mat demosicing(cv::Mat bayerImg, int colorType)
+{
+    // Check if the image is loaded successfully
+    if (bayerImg.empty()) 
+    {
+        std::cout << "Could not open or find the image" << std::endl;
+        return cv::Mat();
+    }
 
+    cv::Mat debayerImg(HEIGHT, WIDTH, CV_8UC3);
+    cv::cvtColor(bayerImg, debayerImg, colorType);
+
+    return debayerImg;
+}
